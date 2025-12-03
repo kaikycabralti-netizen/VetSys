@@ -361,6 +361,178 @@ document.addEventListener('DOMContentLoaded', () => {
     renderEstoqueTable(filtered);
   }
 
+  // 5. Financeiro
+  let financeChartInstance = null;
+
+  async function loadFinanceiro() {
+    // 1. Resumo (Cards)
+    try {
+      const resumo = await fetchJson('/api/financeiro/resumo');
+      document.querySelector('.summary-card.revenue p').textContent = `R$ ${resumo.receita_total.toFixed(2)}`;
+      document.querySelector('.summary-card.expenses p').textContent = `R$ ${resumo.despesa_total.toFixed(2)}`;
+      document.querySelector('.summary-card.profit p').textContent = `R$ ${resumo.lucro.toFixed(2)}`;
+    } catch (e) { console.error("Erro resumo financeiro", e); }
+
+    // 2. Lista de Transações
+    try {
+      const transacoes = await fetchJson('/api/financeiro/transacoes');
+      const listEl = document.querySelector('.transaction-list');
+      if (listEl) {
+        listEl.innerHTML = '';
+        if (transacoes.length === 0) {
+          listEl.innerHTML = '<li style="text-align:center; color:#888;">Nenhuma transação recente.</li>';
+        } else {
+          transacoes.forEach(t => {
+            const li = document.createElement('li');
+            const isReceita = t.tipo === 'receita';
+            const colorClass = isReceita ? 'income' : 'expense';
+            const signal = isReceita ? '+' : '-';
+
+            li.innerHTML = `
+                        <div style="display:flex; flex-direction:column;">
+                            <span style="font-weight:600;">${escapeHtml(t.descricao)}</span>
+                            <span style="font-size:0.8rem; color:#777;">${formatDate(t.data)} - ${t.categoria}</span>
+                        </div>
+                        <span class="${colorClass}" style="font-weight:bold;">${signal} R$ ${t.valor.toFixed(2)}</span>
+                      `;
+            listEl.appendChild(li);
+          });
+        }
+      }
+    } catch (e) { console.error("Erro lista transações", e); }
+
+    // 3. Gráfico
+    try {
+      const dadosGrafico = await fetchJson('/api/financeiro/grafico');
+      renderFinanceChart(dadosGrafico);
+    } catch (e) { console.error("Erro gráfico financeiro", e); }
+  }
+
+  function renderFinanceChart(data) {
+    const ctx = document.getElementById('financeChart');
+    if (!ctx) return;
+
+    if (financeChartInstance) {
+      financeChartInstance.destroy();
+    }
+
+    financeChartInstance = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: data.labels, // Meses
+        datasets: [
+          {
+            label: 'Receitas',
+            data: data.receitas,
+            backgroundColor: '#28a745',
+            borderRadius: 4
+          },
+          {
+            label: 'Despesas',
+            data: data.despesas,
+            backgroundColor: '#dc3545',
+            borderRadius: 4
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { position: 'top' },
+          title: { display: false }
+        },
+        scales: {
+          y: { beginAtZero: true }
+        }
+      }
+    });
+  }
+
+  // Lógica do Formulário Financeiro
+  const finOrigemSelect = document.getElementById('fin-origem');
+  const divFinReferencia = document.getElementById('div-fin-referencia');
+  const finReferenciaSelect = document.getElementById('fin-referencia');
+  const formNovaTransacao = document.getElementById('form-nova-transacao');
+
+  if (finOrigemSelect) {
+    finOrigemSelect.addEventListener('change', async (e) => {
+      const val = e.target.value;
+      if (val === 'consulta' || val === 'estoque') {
+        divFinReferencia.classList.remove('hidden');
+        finReferenciaSelect.innerHTML = '<option>Carregando...</option>';
+
+        try {
+          let items = [];
+          if (val === 'consulta') {
+            // Buscar consultas recentes
+            const res = await fetchJson('/api/consultas');
+            items = res.map(c => ({ id: c.id, label: `${formatDate(c.data)} - ${c.paciente_nome} (${c.motivo})` }));
+          } else {
+            // Buscar estoque
+            const res = await fetchJson('/api/estoque');
+            items = res.map(i => ({ id: i.id, label: `${i.item} (Qtd: ${i.quantidade})` }));
+          }
+
+          finReferenciaSelect.innerHTML = '<option value="">Selecione...</option>';
+          items.forEach(i => {
+            const opt = document.createElement('option');
+            opt.value = i.id;
+            opt.textContent = i.label;
+            finReferenciaSelect.appendChild(opt);
+          });
+
+        } catch (err) {
+          console.error("Erro ao carregar referencias", err);
+          finReferenciaSelect.innerHTML = '<option value="">Erro ao carregar</option>';
+        }
+      } else {
+        divFinReferencia.classList.add('hidden');
+        finReferenciaSelect.innerHTML = '';
+      }
+    });
+  }
+
+  if (formNovaTransacao) {
+    formNovaTransacao.addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const tipo = document.getElementById('fin-tipo').value;
+      const valor = parseFloat(document.getElementById('fin-valor').value);
+      const origem = document.getElementById('fin-origem').value;
+      const refId = document.getElementById('fin-referencia').value;
+      const descricao = document.getElementById('fin-descricao').value;
+      const categoria = document.getElementById('fin-categoria').value;
+      const data = document.getElementById('fin-data').value;
+
+      if (!valor || !descricao || !data || !categoria) {
+        showToast("Preencha os campos obrigatórios.", "error");
+        return;
+      }
+
+      try {
+        const payload = {
+          tipo, valor, data, descricao, categoria,
+          origem: origem !== 'outro' ? origem : null,
+          referencia_id: refId ? parseInt(refId) : null
+        };
+
+        const res = await postJson('/api/financeiro/transacao', payload);
+        if (res.ok) {
+          showToast("Transação registrada!", "success");
+          formNovaTransacao.reset();
+          divFinReferencia.classList.add('hidden');
+          loadFinanceiro(); // Atualiza gráficos e listas
+        } else {
+          showToast("Erro ao registrar.", "error");
+        }
+      } catch (err) {
+        console.error(err);
+        showToast("Erro de conexão.", "error");
+      }
+    });
+  }
+
   // 5. FullCalendar
   async function initCalendar() {
     const calendarEl = document.getElementById('fullcalendar-container');
@@ -621,6 +793,9 @@ document.addEventListener('DOMContentLoaded', () => {
         break;
       case 'estoque':
         await loadEstoque();
+        break;
+      case 'financeiro':
+        await loadFinanceiro();
         break;
     }
   }

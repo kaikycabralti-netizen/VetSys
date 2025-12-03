@@ -65,7 +65,9 @@ def init_db():
             tipo TEXT NOT NULL, -- 'receita' ou 'despesa'
             valor REAL NOT NULL,
             data TEXT NOT NULL,
-            categoria TEXT NOT NULL
+            categoria TEXT NOT NULL,
+            origem TEXT, -- 'consulta', 'estoque', 'outro'
+            referencia_id INTEGER -- ID da consulta ou item de estoque (opcional)
         )
     ''')
     
@@ -187,6 +189,72 @@ def db_get_financeiro_resumo() -> Dict[str, Any]:
         "lucro": receita - despesa
     }
 
+def db_add_transacao(transacao: Dict[str, Any]) -> int:
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute('''
+        INSERT INTO financeiro (descricao, tipo, valor, data, categoria, origem, referencia_id)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+    ''', (
+        transacao['descricao'], 
+        transacao['tipo'], 
+        transacao['valor'], 
+        transacao['data'], 
+        transacao['categoria'],
+        transacao.get('origem'),
+        transacao.get('referencia_id')
+    ))
+    conn.commit()
+    new_id = cursor.lastrowid
+    conn.close()
+    return new_id
+
+def db_get_transacoes(limit: int = 10) -> List[Dict[str, Any]]:
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute('SELECT * FROM financeiro ORDER BY data DESC, id DESC LIMIT ?', (limit,))
+    rows = cursor.fetchall()
+    conn.close()
+    return [dict(row) for row in rows]
+
+def db_get_financeiro_grafico() -> Dict[str, Any]:
+    """Retorna dados agregados por mês para gráficos."""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    # Agrupar por mês (YYYY-MM) e tipo
+    # SQLite strftime('%Y-%m', data)
+    cursor.execute('''
+        SELECT strftime('%Y-%m', data) as mes, tipo, SUM(valor) as total
+        FROM financeiro
+        GROUP BY mes, tipo
+        ORDER BY mes ASC
+    ''')
+    rows = cursor.fetchall()
+    conn.close()
+    
+    # Processar dados para formato fácil de gráfico
+    dados = {}
+    for row in rows:
+        mes = row['mes']
+        tipo = row['tipo']
+        total = row['total']
+        
+        if mes not in dados:
+            dados[mes] = {'receita': 0.0, 'despesa': 0.0}
+        dados[mes][tipo] = total
+        
+    # Converter para listas ordenadas
+    meses = sorted(dados.keys())
+    receitas = [dados[m]['receita'] for m in meses]
+    despesas = [dados[m]['despesa'] for m in meses]
+    
+    return {
+        "labels": meses,
+        "receitas": receitas,
+        "despesas": despesas
+    }
+
 def db_get_dashboard_stats() -> Dict[str, Any]:
     conn = get_db_connection()
     cursor = conn.cursor()
@@ -252,6 +320,21 @@ class FinanceiroResumo(BaseModel):
     receita_total: float
     despesa_total: float
     lucro: float
+
+class Transacao(BaseModel):
+    id: Optional[int] = None
+    descricao: str
+    tipo: str = Field(..., description="'receita' ou 'despesa'")
+    valor: float
+    data: str # YYYY-MM-DD
+    categoria: str
+    origem: Optional[str] = None # 'consulta', 'estoque', 'outro'
+    referencia_id: Optional[int] = None
+
+class FinanceiroGrafico(BaseModel):
+    labels: List[str]
+    receitas: List[float]
+    despesas: List[float]
 
 class DashboardStats(BaseModel):
     total_pacientes: int
@@ -403,6 +486,24 @@ def create_item_estoque(item: ItemEstoque):
 @app.get("/api/financeiro/resumo", response_model=FinanceiroResumo, tags=["Financeiro"])
 def get_financeiro_resumo():
     return db_get_financeiro_resumo()
+
+@app.get("/api/financeiro/transacoes", response_model=List[Transacao], tags=["Financeiro"])
+def get_transacoes():
+    return db_get_transacoes()
+
+@app.post("/api/financeiro/transacao", response_model=Transacao, status_code=201, tags=["Financeiro"])
+def create_transacao(transacao: Transacao):
+    try:
+        t_dict = transacao.dict()
+        new_id = db_add_transacao(t_dict)
+        transacao.id = new_id
+        return transacao
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erro ao criar transação: {str(e)}")
+
+@app.get("/api/financeiro/grafico", response_model=FinanceiroGrafico, tags=["Financeiro"])
+def get_financeiro_grafico():
+    return db_get_financeiro_grafico()
 
 # --- Rotas de Chat IA ---
 from vetsys.vetsys_IA import vetsys_ai

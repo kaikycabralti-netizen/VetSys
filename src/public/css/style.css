@@ -330,15 +330,15 @@ body {
     margin-left: 5px;
     border-radius: 4px;
     cursor: pointer;
-    transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-    /* Bouncy effect */
+    transition: background-color 0.2s, color 0.2s, border-color 0.2s;
+    /* Removed transform scale to prevent flicking/layout shifts */
 }
 
 .action-btn:hover {
     background-color: var(--primary-color);
     color: var(--text-light);
     border-color: var(--primary-color);
-    transform: scale(1.15);
+    /* transform: scale(1.15); Removed */
 }
 
 .table-footer {
@@ -782,20 +782,18 @@ button {
     background: dodgerblue;
     color: white;
     border-radius: 10px;
-    transform: translate(0px, 2px);
-
+    transition: background 0.2s, transform 0.1s;
+    /* Smoother transition */
 }
 
 button:hover {
-    background: rgb(2, 0, 36);
     background: linear-gradient(90deg, rgba(30, 144, 255, 1) 0%, rgb(3, 169, 202) 100%);
-    border-radius: 10px;
-    transform: translate(0px, -15px);
+    transform: translateY(-2px);
+    /* Subtle lift instead of drastic move */
 }
 
 button:active {
-    transform: translate(0em, -15px);
-    border-radius: 10px;
+    transform: translateY(0);
 }
 
 #chat-icon {
