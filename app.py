@@ -504,6 +504,20 @@ def create_item_estoque(item: ItemEstoque):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Erro ao adicionar item: {str(e)}")
 
+@app.put("/api/estoque/{item_id}", response_model=ItemEstoque, tags=["Estoque"])
+def update_item_estoque(item_id: int, item: ItemEstoque):
+    try:
+        item_dict = item.dict()
+        updated = db_update_item_estoque(item_id, item_dict)
+        if not updated:
+            raise HTTPException(status_code=404, detail="Item não encontrado")
+        item.id = item_id
+        return item
+    except HTTPException as he:
+        raise he
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erro ao atualizar item: {str(e)}")
+
 # --- Rotas Financeiras ---
 
 @app.get("/api/financeiro/resumo", response_model=FinanceiroResumo, tags=["Financeiro"])
