@@ -388,10 +388,18 @@ document.addEventListener('DOMContentLoaded', () => {
             const colorClass = isReceita ? 'income' : 'expense';
             const signal = isReceita ? '+' : '-';
 
+            // Ícone baseado na origem
+            let icon = '<i class="fas fa-exchange-alt"></i>';
+            if (t.origem === 'consulta') icon = '<i class="fas fa-stethoscope"></i>';
+            if (t.origem === 'estoque') icon = '<i class="fas fa-box"></i>';
+
             li.innerHTML = `
-                        <div style="display:flex; flex-direction:column;">
-                            <span style="font-weight:600;">${escapeHtml(t.descricao)}</span>
-                            <span style="font-size:0.8rem; color:#777;">${formatDate(t.data)} - ${t.categoria}</span>
+                        <div style="display:flex; align-items:center; gap:10px;">
+                            <div style="background:#f0f2f5; padding:8px; border-radius:50%; color:#555;">${icon}</div>
+                            <div style="display:flex; flex-direction:column;">
+                                <span style="font-weight:600;">${escapeHtml(t.descricao)}</span>
+                                <span style="font-size:0.8rem; color:#777;">${formatDate(t.data)} • ${t.categoria}</span>
+                            </div>
                         </div>
                         <span class="${colorClass}" style="font-weight:bold;">${signal} R$ ${t.valor.toFixed(2)}</span>
                       `;
@@ -401,52 +409,17 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     } catch (e) { console.error("Erro lista transações", e); }
 
-    // 3. Gráfico
-    try {
-      const dadosGrafico = await fetchJson('/api/financeiro/grafico');
-      renderFinanceChart(dadosGrafico);
-    } catch (e) { console.error("Erro gráfico financeiro", e); }
+    // 3. Gráfico (Python Matplotlib)
+    const imgChart = document.getElementById('financeChartImg');
+    if (imgChart) {
+      // Adiciona timestamp para evitar cache do navegador
+      imgChart.src = `/api/financeiro/grafico_img?t=${new Date().getTime()}`;
+    }
   }
 
+  // Função renderFinanceChart removida pois agora usamos imagem do backend
   function renderFinanceChart(data) {
-    const ctx = document.getElementById('financeChart');
-    if (!ctx) return;
-
-    if (financeChartInstance) {
-      financeChartInstance.destroy();
-    }
-
-    financeChartInstance = new Chart(ctx, {
-      type: 'bar',
-      data: {
-        labels: data.labels, // Meses
-        datasets: [
-          {
-            label: 'Receitas',
-            data: data.receitas,
-            backgroundColor: '#28a745',
-            borderRadius: 4
-          },
-          {
-            label: 'Despesas',
-            data: data.despesas,
-            backgroundColor: '#dc3545',
-            borderRadius: 4
-          }
-        ]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-          legend: { position: 'top' },
-          title: { display: false }
-        },
-        scales: {
-          y: { beginAtZero: true }
-        }
-      }
-    });
+    // Placeholder vazio
   }
 
   // Lógica do Formulário Financeiro
@@ -479,6 +452,8 @@ document.addEventListener('DOMContentLoaded', () => {
             const opt = document.createElement('option');
             opt.value = i.id;
             opt.textContent = i.label;
+            // Guardar texto extra para auto-preencher
+            opt.dataset.text = i.label;
             finReferenciaSelect.appendChild(opt);
           });
 
@@ -489,6 +464,21 @@ document.addEventListener('DOMContentLoaded', () => {
       } else {
         divFinReferencia.classList.add('hidden');
         finReferenciaSelect.innerHTML = '';
+      }
+    });
+
+    // Auto-preencher descrição ao selecionar referência
+    finReferenciaSelect.addEventListener('change', (e) => {
+      const selectedOpt = finReferenciaSelect.options[finReferenciaSelect.selectedIndex];
+      const descInput = document.getElementById('fin-descricao');
+      const origem = finOrigemSelect.value;
+
+      if (selectedOpt && selectedOpt.value && descInput) {
+        if (origem === 'consulta') {
+          descInput.value = `Pagamento: ${selectedOpt.dataset.text}`;
+        } else if (origem === 'estoque') {
+          descInput.value = `Compra: ${selectedOpt.dataset.text}`;
+        }
       }
     });
   }

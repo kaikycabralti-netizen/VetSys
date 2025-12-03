@@ -65,15 +65,25 @@ def init_db():
             tipo TEXT NOT NULL, -- 'receita' ou 'despesa'
             valor REAL NOT NULL,
             data TEXT NOT NULL,
-            categoria TEXT NOT NULL,
-            origem TEXT, -- 'consulta', 'estoque', 'outro'
-            referencia_id INTEGER -- ID da consulta ou item de estoque (opcional)
+            categoria TEXT NOT NULL
         )
     ''')
     
+    # Migração de Schema: Adicionar colunas novas se não existirem
+    cursor.execute("PRAGMA table_info(financeiro)")
+    columns = [info[1] for info in cursor.fetchall()]
+    
+    if 'origem' not in columns:
+        print("Migrando BD: Adicionando coluna 'origem' em 'financeiro'...")
+        cursor.execute("ALTER TABLE financeiro ADD COLUMN origem TEXT")
+        
+    if 'referencia_id' not in columns:
+        print("Migrando BD: Adicionando coluna 'referencia_id' em 'financeiro'...")
+        cursor.execute("ALTER TABLE financeiro ADD COLUMN referencia_id INTEGER")
+    
     conn.commit()
     conn.close()
-    print("Banco de dados inicializado com sucesso (Pacientes, Consultas, Estoque, Financeiro).")
+    print("Banco de dados inicializado e verificado com sucesso.")
 
 # --- Funções de Acesso a Dados (DAO) ---
 
@@ -504,6 +514,72 @@ def create_transacao(transacao: Transacao):
 @app.get("/api/financeiro/grafico", response_model=FinanceiroGrafico, tags=["Financeiro"])
 def get_financeiro_grafico():
     return db_get_financeiro_grafico()
+
+# --- Gráfico Python (Matplotlib) ---
+import matplotlib
+matplotlib.use('Agg') # Backend não-interativo para servidor
+import matplotlib.pyplot as plt
+import io
+from fastapi.responses import StreamingResponse
+
+@app.get("/api/financeiro/grafico_img", tags=["Financeiro"])
+def get_financeiro_grafico_img():
+    """Gera um gráfico financeiro profissional usando Matplotlib e retorna como imagem."""
+    dados = db_get_financeiro_grafico()
+    
+    # Configuração do Gráfico
+    plt.figure(figsize=(10, 6))
+    meses = dados['labels']
+    receitas = dados['receitas']
+    despesas = dados['despesas']
+    
+    # Largura das barras e posições
+    bar_width = 0.35
+    index = range(len(meses))
+    r1 = index
+    r2 = [x + bar_width for x in r1]
+    
+    # Cores Profissionais
+    color_receita = '#28a745' # Verde Sucesso
+    color_despesa = '#dc3545' # Vermelho Perigo
+    
+    # Plotar barras
+    bars1 = plt.bar(r1, receitas, color=color_receita, width=bar_width, edgecolor='white', label='Receitas')
+    bars2 = plt.bar(r2, despesas, color=color_despesa, width=bar_width, edgecolor='white', label='Despesas')
+    
+    # Adicionar valores acima das barras
+    def add_labels(bars):
+        for bar in bars:
+            height = bar.get_height()
+            if height > 0:
+                plt.text(bar.get_x() + bar.get_width()/2., height,
+                        f'R${int(height)}',
+                        ha='center', va='bottom', fontsize=9, fontweight='bold', color='#444')
+
+    add_labels(bars1)
+    add_labels(bars2)
+    
+    # Estilização
+    plt.xlabel('Mês', fontweight='bold')
+    plt.ylabel('Valor (R$)', fontweight='bold')
+    plt.title('Fluxo de Caixa Mensal: Receitas vs Despesas', fontweight='bold', pad=20)
+    plt.xticks([r + bar_width/2 for r in range(len(meses))], meses)
+    plt.legend()
+    
+    # Grid suave apenas no eixo Y
+    plt.grid(axis='y', linestyle='--', alpha=0.3)
+    
+    # Remover bordas desnecessárias (spines)
+    plt.gca().spines['top'].set_visible(False)
+    plt.gca().spines['right'].set_visible(False)
+    
+    # Salvar em buffer
+    buf = io.BytesIO()
+    plt.savefig(buf, format='png', bbox_inches='tight', dpi=100)
+    buf.seek(0)
+    plt.close()
+    
+    return StreamingResponse(buf, media_type="image/png")
 
 # --- Rotas de Chat IA ---
 from vetsys.vetsys_IA import vetsys_ai
