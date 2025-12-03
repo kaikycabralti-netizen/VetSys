@@ -329,7 +329,7 @@ document.addEventListener('DOMContentLoaded', () => {
             <td>${item.quantidade}</td>
             <td>${formatDate(item.validade)}</td>
             <td><span class="status-badge ${statusClass}">${escapeHtml(item.status)}</span></td>
-            <td><button class="action-btn edit"><i class="fas fa-edit"></i></button></td>
+            <td><button class="action-btn edit" onclick="startEditItem(${item.id})"><i class="fas fa-edit"></i></button></td>
         `;
       stockTableBody.appendChild(tr);
     });
@@ -731,26 +731,64 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     try {
-      const res = await postJson('/api/estoque', {
+      let res;
+      const payload = {
         item: nome,
         categoria: cat,
         quantidade: qtd,
         validade: validade,
         status: status
-      });
+      };
+
+      if (editingItemId) {
+        // Update
+        res = await fetch(`/api/estoque/${editingItemId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+      } else {
+        // Create
+        res = await postJson('/api/estoque', payload);
+      }
+
       if (res.ok) {
-        showToast("Item registrado com sucesso!", 'success');
+        showToast(editingItemId ? "Item atualizado com sucesso!" : "Item registrado com sucesso!", 'success');
         formNovoItem.reset();
         formNovoItemContainer.classList.add('hidden');
+        editingItemId = null; // Reset edit mode
+        document.querySelector('#form-novo-item-container h3').textContent = 'Registrar Novo Item'; // Reset title
         loadEstoque();
-        loadDashboard(); // update total items on dashboard
+        loadDashboard();
       } else {
-        showToast("Erro ao registrar item.", 'error');
+        showToast("Erro ao salvar item.", 'error');
       }
     } catch (err) {
       console.error(err);
       showToast("Erro de conexão.", 'error');
     }
+  }
+
+  // Função para iniciar edição (chamada pelos botões da tabela)
+  window.startEditItem = function (id) {
+    const item = allStockItems.find(i => i.id === id);
+    if (!item) return;
+
+    editingItemId = id;
+
+    // Preencher formulário
+    document.getElementById('item-nome').value = item.item;
+    document.getElementById('item-categoria').value = item.categoria;
+    document.getElementById('item-qtd').value = item.quantidade;
+    document.getElementById('item-validade').value = item.validade;
+    document.getElementById('item-status').value = item.status;
+
+    // Mudar UI
+    document.querySelector('#form-novo-item-container h3').textContent = 'Editar Item';
+    formNovoItemContainer.classList.remove('hidden');
+
+    // Scroll para o form
+    formNovoItemContainer.scrollIntoView({ behavior: 'smooth' });
   }
 
   // -------------- NAVIGATION -------------

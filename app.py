@@ -180,6 +180,19 @@ def db_add_item_estoque(item: Dict[str, Any]) -> int:
     conn.close()
     return new_id
 
+def db_update_item_estoque(item_id: int, item: Dict[str, Any]) -> bool:
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute('''
+        UPDATE estoque 
+        SET item = ?, categoria = ?, quantidade = ?, validade = ?, status = ?
+        WHERE id = ?
+    ''', (item['item'], item['categoria'], item['quantidade'], str(item['validade']), item['status'], item_id))
+    conn.commit()
+    rows_affected = cursor.rowcount
+    conn.close()
+    return rows_affected > 0
+
 def db_get_financeiro_resumo() -> Dict[str, Any]:
     conn = get_db_connection()
     cursor = conn.cursor()
