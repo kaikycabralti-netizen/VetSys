@@ -495,7 +495,41 @@
                     </div>
 
                     <div id="page-relatorios" class="page-content hidden">
-                        <h2>Relatórios e Estatísticas</h2>
+                        <h2>Relatórios e Estatísticas Gerais</h2>
+
+                        <!-- Resumo Dinâmico de Relatórios -->
+                        <div class="finance-summary" style="margin-bottom: 30px;">
+                            <div class="summary-card" style="border-left: 5px solid #007bff;">
+                                <div>
+                                    <h3>Financeiro (Mês)</h3>
+                                    <p id="rel-fin-resumo" style="font-size: 1rem; color: #555;">Carregando...</p>
+                                </div>
+                                <i class="fas fa-chart-pie" style="color: #007bff;"></i>
+                            </div>
+                            <div class="summary-card" style="border-left: 5px solid #28a745;">
+                                <div>
+                                    <h3>Pacientes Ativos</h3>
+                                    <p id="rel-pacientes-ativos" style="font-size: 1.5rem; font-weight: bold;">0</p>
+                                </div>
+                                <i class="fas fa-paw" style="color: #28a745;"></i>
+                            </div>
+                            <div class="summary-card" style="border-left: 5px solid #ffc107;">
+                                <div>
+                                    <h3>Total Consultas</h3>
+                                    <p id="rel-total-consultas" style="font-size: 1.5rem; font-weight: bold;">0</p>
+                                </div>
+                                <i class="fas fa-notes-medical" style="color: #ffc107;"></i>
+                            </div>
+                            <div class="summary-card" style="border-left: 5px solid #dc3545;">
+                                <div>
+                                    <h3>Estoque Crítico</h3>
+                                    <p id="rel-estoque-critico"
+                                        style="font-size: 1.5rem; font-weight: bold; color: #dc3545;">0</p>
+                                    <small id="rel-estoque-total" style="color: #777;">de 0 itens</small>
+                                </div>
+                                <i class="fas fa-exclamation-triangle" style="color: #dc3545;"></i>
+                            </div>
+                        </div>
 
                         <div class="report-generation-card">
                             <h3>Gerar Novo Relatório</h3>

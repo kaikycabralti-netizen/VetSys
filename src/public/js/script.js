@@ -787,6 +787,43 @@ document.addEventListener('DOMContentLoaded', () => {
       case 'financeiro':
         await loadFinanceiro();
         break;
+      case 'relatorios':
+        await loadRelatorios();
+        break;
+    }
+  }
+
+  async function loadRelatorios() {
+    try {
+      const dados = await fetchJson('/api/relatorios/resumo');
+
+      // 1. Financeiro
+      const fin = dados.financeiro;
+      const finEl = document.getElementById('rel-fin-resumo');
+      if (finEl) {
+        finEl.innerHTML = `
+                  <span style="color:#28a745">Receita: R$ ${fin.receita.toFixed(2)}</span><br>
+                  <span style="color:#dc3545">Despesa: R$ ${fin.despesa.toFixed(2)}</span><br>
+                  <strong>Lucro: R$ ${fin.lucro.toFixed(2)}</strong>
+              `;
+      }
+
+      // 2. Pacientes
+      const pacEl = document.getElementById('rel-pacientes-ativos');
+      if (pacEl) pacEl.textContent = dados.pacientes.ativos;
+
+      // 3. Consultas
+      const consEl = document.getElementById('rel-total-consultas');
+      if (consEl) consEl.textContent = dados.consultas.total;
+
+      // 4. Estoque
+      const estCriticoEl = document.getElementById('rel-estoque-critico');
+      const estTotalEl = document.getElementById('rel-estoque-total');
+      if (estCriticoEl) estCriticoEl.textContent = dados.estoque.criticos;
+      if (estTotalEl) estTotalEl.textContent = `de ${dados.estoque.total} itens`;
+
+    } catch (e) {
+      console.error("Erro ao carregar relatórios", e);
     }
   }
 

@@ -581,6 +581,65 @@ def get_financeiro_grafico_img():
     
     return StreamingResponse(buf, media_type="image/png")
 
+    return StreamingResponse(buf, media_type="image/png")
+
+# --- Rotas de Relatórios ---
+
+@app.get("/api/relatorios/resumo", tags=["Relatórios"])
+def get_relatorios_resumo():
+    """Retorna um resumo geral para a página de relatórios."""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    # 1. Financeiro (Mês Atual)
+    import datetime
+    hoje = datetime.date.today()
+    mes_atual = hoje.strftime('%Y-%m')
+    
+    cursor.execute("SELECT SUM(valor) FROM financeiro WHERE tipo='receita' AND strftime('%Y-%m', data) = ?", (mes_atual,))
+    receita = cursor.fetchone()[0] or 0.0
+    
+    cursor.execute("SELECT SUM(valor) FROM financeiro WHERE tipo='despesa' AND strftime('%Y-%m', data) = ?", (mes_atual,))
+    despesa = cursor.fetchone()[0] or 0.0
+    
+    lucro = receita - despesa
+    
+    # 2. Pacientes
+    cursor.execute("SELECT COUNT(*) FROM pacientes WHERE status='Ativo'")
+    pacientes_ativos = cursor.fetchone()[0]
+    
+    # 3. Consultas (Média Mensal - Simplificada)
+    cursor.execute("SELECT COUNT(*) FROM consultas")
+    total_consultas = cursor.fetchone()[0]
+    # (Para média real precisaria de mais dados históricos, usando total por enquanto como proxy de atividade)
+    
+    # 4. Estoque
+    cursor.execute("SELECT COUNT(*) FROM estoque")
+    total_itens = cursor.fetchone()[0]
+    
+    cursor.execute("SELECT COUNT(*) FROM estoque WHERE status='Baixo'")
+    itens_criticos = cursor.fetchone()[0]
+    
+    conn.close()
+    
+    return {
+        "financeiro": {
+            "receita": receita,
+            "despesa": despesa,
+            "lucro": lucro
+        },
+        "pacientes": {
+            "ativos": pacientes_ativos
+        },
+        "consultas": {
+            "total": total_consultas
+        },
+        "estoque": {
+            "total": total_itens,
+            "criticos": itens_criticos
+        }
+    }
+
 # --- Rotas de Chat IA ---
 from vetsys.vetsys_IA import vetsys_ai
 
