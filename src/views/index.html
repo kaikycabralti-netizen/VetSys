@@ -1,0 +1,669 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VetSys - Sistema Veterinário</title>
+    <!-- Caminhos ajustados para funcionar com o servidor FastAPI -->
+    <link rel="stylesheet" href="/public/css/style.css">
+    <link rel="stylesheet" href="/public/css/inventory.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+
+    <!-- FullCalendar CDN (Garantia de funcionamento sem build step) -->
+    <script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js'></script>
+    <script src='https://cdn.jsdelivr.net/npm/@fullcalendar/core@6.1.11/locales/pt-br.global.min.js'></script>
+</head>
+
+
+
+<body>
+
+
+    <div class="dashboard-container">
+
+        <aside class="sidebar">
+            <div class="logo">
+                <i class="fas fa-paw"></i> VetSys
+            </div>
+
+            <nav class="sidebar-nav">
+                <a href="#" class="nav-item active" data-page="inicio" data-title="Início">
+                    <i class="fas fa-home"></i> Início
+                </a>
+                <a href="#" class="nav-item" data-page="pacientes" data-title="Pacientes">
+                    <i class="fas fa-users"></i> Pacientes
+                </a>
+                <a href="#" class="nav-item" data-page="consultas" data-title="Consultas">
+                    <i class="fas fa-notes-medical"></i> Consultas
+                </a>
+                <a href="#" class="nav-item" data-page="agendamento" data-title="Agenda Completa">
+                    <i class="fas fa-calendar-alt"></i> Agenda
+                </a>
+                <a href="#" class="nav-item" data-page="estoque" data-title="Estoque">
+                    <i class="fas fa-box"></i> Estoque
+                </a>
+                <a href="#" class="nav-item" data-page="financeiro" data-title="Financeiro">
+                    <i class="fas fa-dollar-sign"></i> Financeiro
+                </a>
+                <a href="#" class="nav-item" data-page="relatorios" data-title="Relatórios">
+                    <i class="fas fa-chart-line"></i> Relatórios
+                </a>
+            </nav>
+        </aside>
+
+        <main class="main-content">
+
+            <header class="header">
+                <div class="header-title" id="page-title">Carregando...</div>
+                <div class="user-profile">
+                    <span>Dr. Anderson</span>
+                    <i class="fas fa-user-circle"></i>
+                </div>
+            </header>
+
+            <section class="content-area">
+
+                <div id="skeleton-loader" class="skeleton-active">
+                    <div class="skeleton-header"></div>
+                    <div class="skeleton-summary">
+                        <div class="skeleton-card"></div>
+                        <div class="skeleton-card"></div>
+                        <div class="skeleton-card"></div>
+                    </div>
+                    <div class="skeleton-table">
+                        <div class="skeleton-line large"></div>
+                        <div class="skeleton-line"></div>
+                        <div class="skeleton-line"></div>
+                        <div class="skeleton-line"></div>
+                        <div class="skeleton-line"></div>
+                    </div>
+                </div>
+
+                <div id="dashboard-content" class="hidden">
+
+                    <div id="page-inicio" class="page-content active-page">
+                        <h2>Dashboard</h2>
+                        <div class="quick-summary">
+                            <div class="summary-card total-pacientes">
+                                <div>
+                                    <h3>Total de Pacientes</h3>
+                                    <p>0</p>
+                                </div>
+                                <i class="fas fa-dog"></i>
+                            </div>
+                            <div class="summary-card consultas-hoje">
+                                <div>
+                                    <h3>Consultas Hoje</h3>
+                                    <p>0</p>
+                                </div>
+                                <i class="fas fa-calendar-day"></i>
+                            </div>
+                            <div class="summary-card procedimentos-mes">
+                                <div>
+                                    <h3>Procedimentos (Mês)</h3>
+                                    <p>0</p>
+                                </div>
+                                <i class="fas fa-syringe"></i>
+                            </div>
+                            <div class="summary-card total-estoque">
+                                <div>
+                                    <h3>Itens em Estoque</h3>
+                                    <p>0</p>
+                                </div>
+                                <i class="fas fa-boxes"></i>
+                            </div>
+                        </div>
+
+                        <div class="next-appointments-card">
+                            <h2>Próximas Consultas</h2>
+                            <ul>
+                                <li>
+                                    <strong>13:00</strong> - Max (Golden Retriever) - Vacinação
+                                </li>
+                                <li>
+                                    <strong>11:30</strong> - Mia (Siamês) - Exame de Rotina
+                                </li>
+                                <li>
+                                    <strong>14:00</strong> - Pipo (Bulldog Francês) - Retorno Anemia
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <div id="page-pacientes" class="page-content hidden">
+                        <div class="patients-header">
+                            <h2>Gerenciamento de Pacientes</h2>
+                            <button class="add-patient-btn" id="btn-add-patient">
+                                <i class="fas fa-plus"></i> Novo Paciente
+                            </button>
+                        </div>
+
+                        <!-- Form de Novo Paciente (Hidden by default) -->
+                        <div id="form-novo-paciente-container" class="hidden"
+                            style="margin-bottom: 20px; background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.05);">
+                            <h3>Registrar Novo Paciente</h3>
+                            <form id="form-novo-paciente" class="new-consult-form">
+                                <div class="form-group">
+                                    <label>Nome do Paciente:</label>
+                                    <input type="text" id="paciente-nome" required>
+                                </div>
+                                <div class="form-group half-width">
+                                    <label>Tutor:</label>
+                                    <input type="text" id="paciente-tutor" required>
+                                </div>
+                                <div class="form-group half-width">
+                                    <label>Espécie:</label>
+                                    <select id="paciente-especie" required>
+                                        <option value="Cachorro">Cachorro</option>
+                                        <option value="Gato">Gato</option>
+                                        <option value="Ave">Ave</option>
+                                        <option value="Outro">Outro</option>
+                                    </select>
+                                </div>
+                                <div class="form-group half-width">
+                                    <label>Raça:</label>
+                                    <input type="text" id="paciente-raca" required>
+                                </div>
+                                <div class="form-group half-width">
+                                    <label>Status Inicial:</label>
+                                    <select id="paciente-status">
+                                        <option value="Ativo">Ativo</option>
+                                        <option value="Inativo">Inativo</option>
+                                    </select>
+                                </div>
+                                <div style="width: 100%; margin-top: 10px; display: flex; gap: 10px;">
+                                    <button type="submit" class="add-patient-btn">Salvar Paciente</button>
+                                    <button type="button" class="action-btn" id="btn-cancel-paciente"
+                                        style="background: #ccc; border: none; color: #333;">Cancelar</button>
+                                </div>
+                            </form>
+                        </div>
+
+                        <div class="patients-table-container">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>Nome</th>
+                                        <th>Tutor</th>
+                                        <th>Espécie</th>
+                                        <th>Raça</th>
+                                        <th>Última Consulta</th>
+                                        <th>Status</th>
+                                        <th>Ações</th>
+                                    </tr>
+                                </thead>
+                                <tbody></tbody>
+                            </table>
+                        </div>
+
+                        <div class="table-footer">
+                            <p>Total de Pacientes: 0</p>
+                        </div>
+                    </div>
+
+                    <div id="page-consultas" class="page-content hidden">
+                        <div class="consultas-container">
+                            <div class="consulta-form-card">
+                                <h2>Criar Nova Consulta</h2>
+                                <form id="form-nova-consulta" class="new-consult-form">
+                                    <div class="form-group">
+                                        <label for="paciente-nome-input">Paciente:</label>
+                                        <input type="text" id="paciente-nome-input" name="paciente_nome" required
+                                            placeholder="Digite o nome do paciente">
+                                    </div>
+                                    <div class="form-group half-width">
+                                        <label for="paciente-tutor-input">Tutor:</label>
+                                        <input type="text" id="paciente-tutor-input" required
+                                            placeholder="Nome do Tutor">
+                                    </div>
+                                    <div class="form-group half-width">
+                                        <label for="consulta-raca-input">Raça:</label>
+                                        <input type="text" id="consulta-raca-input" required
+                                            placeholder="Ex: Golden, Siamês">
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="veterinario-consulta">Veterinário:</label>
+                                        <select id="veterinario-consulta" required>
+                                            <option value="">Selecione um veterinário</option>
+                                            <option>Dr. Anderson</option>
+                                        </select>
+                                    </div>
+                                    <div class="form-group half-width">
+                                        <label for="data-consulta">Data:</label>
+                                        <input type="date" id="data-consulta" required>
+                                    </div>
+                                    <div class="form-group half-width">
+                                        <label for="hora-consulta">Hora:</label>
+                                        <input type="time" id="hora-consulta" required>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="consulta-especie-input">Espécie (Tipo de Animal):</label>
+                                        <input type="text" id="consulta-especie-input" name="especie"
+                                            placeholder="Ex: Canino, Felino, Ave" required>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="motivo-consulta">Motivo/Queixa Principal:</label>
+                                        <textarea id="motivo-consulta" rows="3" required></textarea>
+                                    </div>
+                                    <button type="submit" class="add-patient-btn">Salvar Consulta</button>
+                                </form>
+                            </div>
+
+                            <div class="historic-consults-card">
+                                <h2>Histórico Recente</h2>
+                                <ul class="consult-list">
+                                    <li>
+                                    </li>
+                                    <li>
+                                        <strong>03/05/2025</strong> - Mia (Siamês) - *Revisão de Pele*
+                                        <i class="fas fa-file-medical view-record"></i>
+                                    </li>
+                                    <li>
+                                        <strong>25/04/2025</strong> - Pipo (Bulldog) - *Exames de Sangue*
+                                        <i class="fas fa-file-medical view-record"></i>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="page-agendamento" class="page-content hidden">
+                        <div class="card p-3">
+
+                            <div id="fullcalendar-container"></div>
+                        </div>
+                    </div>
+
+                    <div id="page-estoque" class="page-content hidden">
+                        <h2>Controle de Estoque e Inventário</h2>
+
+                        <div class="inventory-summary">
+                            <div class="summary-card total-items">
+                                <h3>Total de Itens</h3>
+                                <p>0</p>
+                            </div>
+                            <div class="summary-card low-stock">
+                                <h3>Estoque Baixo</h3>
+                                <p class="warning-count">0</p>
+                            </div>
+                            <div class="summary-card expired">
+                                <h3>Vencidos Próximos</h3>
+                                <p>0</p>
+                            </div>
+                        </div>
+                        <div class="inventory-controls">
+                            <button class="add-patient-btn" id="btn-add-item">
+                                <i class="fas fa-plus"></i> Novo Item
+                            </button>
+                            <div class="filter-group">
+                                <input type="text" id="estoque-search" placeholder="Buscar item...">
+                                <select id="estoque-filter-categoria">
+                                    <option value="">Todas Categorias</option>
+                                    <option value="Medicamentos">Medicamentos</option>
+                                    <option value="Vacinas">Vacinas</option>
+                                    <option value="Alimentos">Alimentos</option>
+                                    <option value="Cirúrgico">Cirúrgico</option>
+                                    <option value="Outros">Outros</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Form de Novo Item (Hidden by default) -->
+                        <div id="form-novo-item-container" class="hidden"
+                            style="margin-bottom: 20px; background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.05);">
+                            <h3>Registrar Novo Item</h3>
+                            <form id="form-novo-item">
+                                <div class="form-group">
+                                    <label>Nome do Item:</label>
+                                    <input type="text" id="item-nome" required>
+                                </div>
+                                <div class="form-group half-width">
+                                    <label>Categoria:</label>
+                                    <select id="item-categoria" required>
+                                        <option value="Medicamentos">Medicamentos</option>
+                                        <option value="Vacinas">Vacinas</option>
+                                        <option value="Alimentos">Alimentos</option>
+                                        <option value="Cirúrgico">Cirúrgico</option>
+                                        <option value="Outros">Outros</option>
+                                    </select>
+                                </div>
+                                <div class="form-group half-width">
+                                    <label>Quantidade:</label>
+                                    <input type="number" id="item-qtd" required min="0">
+                                </div>
+                                <div class="form-group half-width">
+                                    <label>Validade:</label>
+                                    <input type="date" id="item-validade" required>
+                                </div>
+                                <div class="form-group half-width">
+                                    <label>Status Inicial:</label>
+                                    <select id="item-status">
+                                        <option value="OK">OK</option>
+                                        <option value="Baixo">Baixo Estoque</option>
+                                    </select>
+                                </div>
+                                <button type="submit" class="add-patient-btn">Salvar Item</button>
+                                <button type="button" class="action-btn" id="btn-cancel-item"
+                                    style="background: #ccc;">Cancelar</button>
+                            </form>
+                        </div>
+                        <div class="stock-table-container">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>Item</th>
+                                        <th>Categoria</th>
+                                        <th>Quantidade</th>
+                                        <th>Validade</th>
+                                        <th>Alerta</th>
+                                        <th>Ações</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>Vacina V8</td>
+                                        <td>Imunização</td>
+                                        <td>50</td>
+                                        <td>12/2026</td>
+                                        <td><span class="status-badge active">OK</span></td>
+                                        <td><button class="action-btn edit"><i class="fas fa-edit"></i></button></td>
+                                    </tr>
+                                    <tr>
+                                        <td>Dipirona 500mg</td>
+                                        <td>Medicamentos</td>
+                                        <td>15</td>
+                                        <td>01/2026</td>
+                                        <td><span class="status-badge low-stock-alert">Baixo</span></td>
+                                        <td><button class="action-btn edit"><i class="fas fa-edit"></i></button></td>
+                                    </tr>
+                                    <tr>
+                                        <td>Ração Royal 2kg</td>
+                                        <td>Alimentos</td>
+                                        <td>120</td>
+                                        <td>03/2027</td>
+                                        <td><span class="status-badge active">OK</span></td>
+                                        <td><button class="action-btn edit"><i class="fas fa-edit"></i></button></td>
+                                    </tr>
+
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div id="page-financeiro" class="page-content hidden">
+                        <h2>Resumo Financeiro - Mês de Outubro</h2>
+                        <div class="finance-summary">
+                            <div class="summary-card revenue">
+                                <h3>Receita Total</h3>
+                                <p>R$15.000</p>
+                            </div>
+                            <div class="summary-card expenses">
+                                <h3>Despesas</h3>
+                                <p>R$3.350</p>
+                            </div>
+                            <div class="summary-card profit">
+                                <h3>Lucro Estimado</h3>
+                                <p>R$11500</p>
+                            </div>
+                        </div>
+
+                        <div class="finance-area-grid">
+                            <div class="chart-container">
+                                <h3>Gráfico de Receitas por Serviço</h3>
+
+                                <canvas id="meuGrafico" width="400" height="400"></canvas>
+                                <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+                                <canvas id="meuGrafico" width="400" height="400"></canvas>
+                                <script>
+                                    const ctx = document.getElementById('meuGrafico').getContext('2d');
+
+                                    // Dados do Gráfico de Rosca
+                                    const dadosFinanceiros = {
+                                        labels: [
+                                            'Consultas (Receita)',
+                                            'Vacinação (Receita)',
+                                            'Remédios (despesa)',
+                                            'Conta de Luz (Despesa)',
+                                            'lucro'
+                                        ],
+                                        datasets: [{
+                                            label: 'Composição Financeira Mensal',
+                                            // Valores de exemplo
+                                            data: [
+                                                3000,
+                                                1500,
+                                                3000,
+                                                -350,
+                                                11500
+                                            ],
+                                            backgroundColor: [
+                                                'rgba(75, 192, 192, 0.8)',   // Ciano
+                                                'rgba(54, 162, 235, 0.8)',   // Azul
+                                                'rgba(255, 99, 132, 1)',   // Laranja
+                                                'rgba(255, 99, 132, 0.8)',    // Vermelho (Despesa)
+                                                'rgba(4, 217, 157, 1.0)'      // Verde (Lucro)
+                                            ],
+                                            hoverOffset: 4
+                                        }]
+                                    };
+
+                                    // Inicialização do Gráfico
+                                    const meuGraficoFinanceiro = new Chart(ctx, {
+                                        type: 'doughnut',
+                                        data: dadosFinanceiros,
+                                        options: {
+                                            // --- CONFIGURAÇÕES CRUCIAIS PARA O TAMANHO ---
+                                            responsive: true,
+                                            maintainAspectRatio: false, // **IMPEDE O GRÁFICO DE SE ESTICAR**
+                                            // ---------------------------------------------
+
+                                            plugins: {
+                                                legend: {
+                                                    position: 'top',
+                                                },
+                                                title: {
+                                                    display: true,
+                                                    text: 'Composição Financeira (Receita vs. Despesa)'
+                                                },
+                                                tooltip: {
+                                                    callbacks: {
+                                                        label: function (context) {
+                                                            let label = context.label || '';
+                                                            if (label) {
+                                                                label += ': ';
+                                                            }
+                                                            if (context.raw !== null) {
+                                                                // Formatação para Reais (R$)
+                                                                label += new Intl.NumberFormat('pt-BR', {
+                                                                    style: 'currency',
+                                                                    currency: 'BRL'
+                                                                }).format(context.raw);
+                                                            }
+                                                            return label;
+                                                        }
+                                                    }
+                                                }
+                                            },
+                                            cutout: '60%',
+                                            rotation: 0
+                                        }
+                                    });
+                                </script>
+
+                            </div>
+                            <div class="recent-transactions">
+                                <h3>Transações Recentes</h3>
+                                <ul class="transaction-list">
+                                    <li class="income">Vacinação Max <span>+ R$ 150,00</span></li>
+                                    <li class="income">Consulta(Receitas) <span>+ R$ 1.500,00</span></li>
+                                    <li class="expense">Remédios(Despesa) <span>+ R$ 3.000,00</span></li>
+                                    <li class="expense">Conta de Luz <span>- R$ 350,00</span></li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="page-relatorios" class="page-content hidden">
+                        <h2>Relatórios e Estatísticas</h2>
+
+                        <div class="report-generation-card">
+                            <h3>Gerar Novo Relatório</h3>
+                            <form class="report-form">
+                                <div class="form-group">
+                                    <label for="tipo-relatorio">Tipo de Relatório:</label>
+                                    <select id="tipo-relatorio" required>
+                                        <option>Relatório de Consultas por Período</option>
+                                        <option>Relatório de Receita Mensal</option>
+                                        <option>Relatório de Pacientes Ativos/Inativos</option>
+                                        <option>Relatório de Estoque Crítico</option>
+                                    </select>
+                                </div>
+                                <div class="form-group half-width">
+                                    <label for="data-inicio">De:</label>
+                                    <input type="date" id="data-inicio">
+                                </div>
+                                <div class="form-group half-width">
+                                    <label for="data-fim">Até:</label>
+                                    <input type="date" id="data-fim">
+                                </div>
+                                <button type="submit" class="add-patient-btn">Gerar Relatório</button>
+                            </form>
+                        </div>
+
+                        <div class="download-history-card">
+                            <h3>Histórico de Downloads</h3>
+                            <ul class="download-list">
+                                <li><i class="fas fa-file-pdf"></i> Receita - Abr/2025 <a href="#"><i
+                                            class="fas fa-download"></i></a></li>
+                                <li><i class="fas fa-file-csv"></i> Pacientes Ativos - Mai/2025 <a href="#"><i
+                                            class="fas fa-download"></i></a></li>
+                            </ul>
+                        </div>
+                    </div>
+
+                </div>
+            </section>
+
+        </main>
+
+    </div>
+
+    <!-- FullCalendar JS já carregado no head ou aqui -->
+    <script src="/public/js/script.js"></script>
+    <div id="chat-button">
+        <img src="../public/img/veterinarian (2).png" alt="Chat IA"
+            style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">
+    </div>
+
+    <div id="chat-window">
+        <div id="chat-header">
+            <span><i class="fas fa-robot"></i> Assistente VetSys</span>
+            <button id="close-chat" style="background:none; border:none; color:white; cursor:pointer;"><i
+                    class="fas fa-times"></i></button>
+        </div>
+        <div id="chat-body">
+            <div class="chat-message bot">
+                Olá! Sou a IA do VetSys. Como posso ajudar com seu pet hoje? 🐾
+            </div>
+        </div>
+        <div id="chat-footer" style="padding: 10px; border-top: 1px solid #eee; display: flex; gap: 5px;">
+            <input type="text" id="chat-input" placeholder="Digite sua dúvida..."
+                style="flex-grow: 1; padding: 8px; border: 1px solid #ddd; border-radius: 20px; outline: none;">
+            <button id="send-chat-btn"
+                style="background: var(--primary-color); color: white; border: none; width: 35px; height: 35px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center;">
+                <i class="fas fa-paper-plane"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- Script de controle do Chat -->
+    <script>
+        const chatBtn = document.getElementById("chat-button");
+        const chatWindow = document.getElementById("chat-window");
+        const closeChatBtn = document.getElementById("close-chat");
+        const chatInput = document.getElementById("chat-input");
+        const sendChatBtn = document.getElementById("send-chat-btn");
+        const chatBody = document.getElementById("chat-body");
+
+        // Toggle Chat
+        function toggleChat() {
+            if (chatWindow.style.display === "flex") {
+                chatWindow.style.display = "none";
+            } else {
+                chatWindow.style.display = "flex";
+                setTimeout(() => chatInput.focus(), 100);
+            }
+        }
+
+        chatBtn.addEventListener("click", toggleChat);
+        if (closeChatBtn) closeChatBtn.addEventListener("click", toggleChat);
+
+        // Enviar Mensagem
+        async function sendMessage() {
+            const msg = chatInput.value.trim();
+            if (!msg) return;
+
+            // 1. Adiciona mensagem do usuário
+            appendMessage(msg, 'user');
+            chatInput.value = '';
+
+            // 2. Feedback de carregamento
+            const loadingId = appendMessage('Digitando...', 'bot', true);
+
+            try {
+                // 3. Chamada API
+                const response = await fetch('/api/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message: msg })
+                });
+
+                const data = await response.json();
+
+                // 4. Remove loading e adiciona resposta
+                removeMessage(loadingId);
+                if (data.response) {
+                    appendMessage(data.response, 'bot');
+                } else {
+                    appendMessage('Desculpe, não entendi.', 'bot');
+                }
+
+            } catch (error) {
+                console.error('Erro no chat:', error);
+                removeMessage(loadingId);
+                appendMessage('Erro de conexão com a IA.', 'bot');
+            }
+        }
+
+        // Helpers
+        function appendMessage(text, sender, isLoading = false) {
+            const div = document.createElement('div');
+            div.className = `chat-message ${sender}`;
+            if (isLoading) {
+                div.id = 'loading-msg';
+                div.style.fontStyle = 'italic';
+                div.style.color = '#888';
+            }
+
+            // Markdown simples (negrito)
+            div.innerHTML = text.replace(/\*\*(.*?)\*\*/g, '<b>$1</b>').replace(/\n/g, '<br>');
+
+            chatBody.appendChild(div);
+            chatBody.scrollTop = chatBody.scrollHeight;
+            return div.id;
+        }
+
+        function removeMessage(id) {
+            const el = document.getElementById(id);
+            if (el) el.remove();
+        }
+
+        // Event Listeners de Envio
+        sendChatBtn.addEventListener("click", sendMessage);
+        chatInput.addEventListener("keypress", (e) => {
+            if (e.key === "Enter") sendMessage();
+        });
+    </script>
+</body>
+
+</html>

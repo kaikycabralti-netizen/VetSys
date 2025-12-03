@@ -1,0 +1,23 @@
+{
+  "name": "electron",
+  "version": "1.0.0",
+  "description": "projeto sistema veterinario",
+  "main": "main.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1" , 
+    "start": "electron ."
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kaikycabralti-netizen/Electron.git"
+  },
+  "author": "kaiky cabral",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/kaikycabralti-netizen/Electron/issues"
+  },
+  "homepage": "https://github.com/kaikycabralti-netizen/Electron#readme",
+  "devDependencies": {
+    "electron": "^38.2.0"
+  }
+}

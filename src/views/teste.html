@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang='pt-br'>
+<head>
+  <meta charset='utf-8' />
+  <title>Agenda Interativa VetSys</title>
+  
+  <script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js'></script>
+  
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+  <style>
+    /* --- ESTILO GERAL --- */
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background-color: #f4f6f9;
+      margin: 0;
+      padding: 20px;
+    }
+
+    #calendar-wrapper {
+      background: #ffffff;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+      height: 85vh;
+    }
+
+    /* --- VISUAL CLEAN (Igual sua foto) --- */
+    .fc-theme-standard td, .fc-theme-standard th {
+      border: 1px solid #f0f2f5; /* Borda quase invisível */
+    }
+    
+    .fc-col-header-cell-cushion {
+      color: #6c757d;
+      font-weight: 600;
+      text-transform: uppercase;
+      font-size: 0.9rem;
+      padding-bottom: 10px !important;
+    }
+
+    .fc-daygrid-day-number {
+      color: #495057;
+      font-size: 1rem;
+      margin: 5px;
+      text-decoration: none;
+    }
+
+    /* DESTAQUE DO DIA ATUAL (Quadrado Azul) */
+    .fc .fc-day-today { background: transparent !important; }
+    .fc-day-today .fc-daygrid-day-number {
+      background-color: #007bff;
+      color: white;
+      border-radius: 4px;
+      padding: 4px 9px !important;
+      font-weight: bold;
+    }
+
+    /* ESTILO DOS EVENTOS */
+    .fc-event {
+      border: none;
+      padding: 4px 6px;
+      font-size: 0.85rem;
+      border-radius: 4px;
+      cursor: pointer; /* Mãozinha ao passar o mouse */
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      transition: transform 0.1s;
+    }
+    .fc-event:hover {
+      transform: scale(1.02); /* Efeito sutil ao passar o mouse */
+    }
+  </style>
+</head>
+<body>
+
+  <div id='calendar-wrapper'>
+    <div id='calendar'></div>
+  </div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      var calendarEl = document.getElementById('calendar');
+
+      var calendar = new FullCalendar.Calendar(calendarEl, {
+        initialView: 'dayGridMonth',
+        locale: 'pt-br',
+        height: '75vh',  // Isso significa "75% da altura da tela do navegador"
+        expandRows: true, // Isso força as linhas a esticarem para preencher o espaço
+        
+        // Habilita Interações
+        selectable: true,  // Permite clicar e arrastar para selecionar dias
+        editable: true,    // Permite arrastar eventos (Drag & Drop)
+        dayMaxEvents: true, // Se tiver muitos eventos, cria link "+ mais"
+
+        // Cabeçalho
+        headerToolbar: {
+          left: 'title',
+          center: '',
+          right: 'prev,next today'
+        },
+        
+        // Formatação dos dias da semana (D, S, T...)
+        dayHeaderContent: (args) => { return args.text[0]; },
+
+        // Eventos Iniciais (Simulação do Banco de Dados)
+        events: [
+          { id: '1', title: 'Rex - Vacina', start: new Date().toISOString().split('T')[0], color: '#28a745' },
+          { id: '2', title: 'Luna - Banho', start: '2025-11-25', color: '#007bff' }
+        ],
+
+        /* --- INTERAÇÃO 1: CRIAR NOVO AGENDAMENTO --- */
+        select: function(info) {
+          Swal.fire({
+            title: 'Novo Agendamento',
+            html: `Deseja agendar para <b>${info.startStr}</b>?`,
+            input: 'text',
+            inputPlaceholder: 'Nome do Paciente / Procedimento',
+            showCancelButton: true,
+            confirmButtonText: 'Salvar',
+            cancelButtonText: 'Cancelar',
+            confirmButtonColor: '#007bff'
+          }).then((result) => {
+            if (result.isConfirmed && result.value) {
+              // Adiciona ao calendário
+              calendar.addEvent({
+                title: result.value,
+                start: info.startStr,
+                allDay: true,
+                color: '#007bff' // Cor padrão
+              });
+              
+              Swal.fire('Salvo!', 'Agendamento realizado.', 'success');
+            }
+          });
+          calendar.unselect(); // Limpa a seleção visual
+        },
+
+        /* --- INTERAÇÃO 2: EDITAR OU EXCLUIR --- */
+        eventClick: function(info) {
+          Swal.fire({
+            title: info.event.title,
+            text: 'O que deseja fazer com este agendamento?',
+            icon: 'question',
+            showDenyButton: true,
+            showCancelButton: true,
+            confirmButtonText: 'Nada (Voltar)',
+            denyButtonText: 'Excluir',
+            denyButtonColor: '#d33',
+            confirmButtonColor: '#6c757d'
+          }).then((result) => {
+            if (result.isDenied) {
+              info.event.remove(); // Remove do calendário visualmente
+              Swal.fire('Excluído!', 'O agendamento foi removido.', 'success');
+            }
+          });
+        },
+
+        /* --- INTERAÇÃO 3: ARRASTAR E SOLTAR (Feedback) --- */
+        eventDrop: function(info) {
+          // Aqui você enviaria a nova data para seu Banco de Dados via AJAX
+          const Toast = Swal.mixin({
+            toast: true,
+            position: 'top-end',
+            showConfirmButton: false,
+            timer: 3000
+          });
+          
+          Toast.fire({
+            icon: 'success',
+            title: `${info.event.title} movido para ${info.event.start.toLocaleDateString()}`
+          });
+        }
+      });
+
+      calendar.render();
+    });
+  </script>
+  <script>
+    
+  </script>
+</body>
+</html>
